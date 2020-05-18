@@ -1,0 +1,212 @@
+---
+title: "Final Project - Samuel Choiniere"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate)
+library(rvest)
+library(XML)
+library(knitr)
+library(tidyverse)
+library(dplyr)
+library(tree)
+library(broom)
+```
+
+```{r include=FALSE}
+offense2010 <- read.csv("./Final Data/offense2010.csv")
+offense2011 <- read.csv("./Final Data/offense2011.csv")
+offense2012 <- read.csv("./Final Data/offense2012.csv")
+offense2013 <- read.csv("./Final Data/offense2013.csv")
+offense2014 <- read.csv("./Final Data/offense2014.csv")
+offense2015 <- read.csv("./Final Data/offense2015.csv")
+offense2016 <- read.csv("./Final Data/offense2016.csv")
+offense2017 <- read.csv("./Final Data/offense2017.csv")
+offense2018 <- read.csv("./Final Data/offense2018.csv")
+offense2019 <- read.csv("./Final Data/offense2019.csv")
+conversion2010 <- read.csv("./Final Data/conversion2010.csv")
+conversion2011 <- read.csv("./Final Data/conversion2011.csv")
+conversion2012 <- read.csv("./Final Data/conversion2012.csv")
+conversion2013 <- read.csv("./Final Data/conversion2013.csv")
+conversion2014 <- read.csv("./Final Data/conversion2014.csv")
+conversion2015 <- read.csv("./Final Data/conversion2015.csv")
+conversion2016 <- read.csv("./Final Data/conversion2016.csv")
+conversion2017 <- read.csv("./Final Data/conversion2017.csv")
+conversion2018 <- read.csv("./Final Data/conversion2018.csv")
+conversion2019 <- read.csv("./Final Data/conversion2019.csv")
+offense2010$year <- 2010
+conversion2010$year <- 2010
+conversion2010$Rk <- NULL
+conversion2010$G <- NULL
+offense2011$year <- 2011
+conversion2011$year <- 2011
+conversion2011$Rk <- NULL
+conversion2011$G <- NULL
+offense2012$year <- 2012
+conversion2012$year <- 2012
+conversion2012$Rk <- NULL
+conversion2012$G <- NULL
+offense2013$year <- 2013
+conversion2013$year <- 2013
+conversion2013$Rk <- NULL
+conversion2013$G <- NULL
+offense2014$year <- 2014
+conversion2014$year <- 2014
+conversion2014$Rk <- NULL
+conversion2014$G <- NULL
+offense2015$year <- 2015
+conversion2015$year <- 2015
+conversion2015$Rk <- NULL
+conversion2015$G <- NULL
+offense2016$year <- 2016
+conversion2016$year <- 2016
+conversion2016$Rk <- NULL
+conversion2016$G <- NULL
+offense2017$year <- 2017
+conversion2017$year <- 2017
+conversion2017$Rk <- NULL
+conversion2017$G <- NULL
+offense2018$year <- 2018
+conversion2018$year <- 2018
+conversion2018$Rk <- NULL
+conversion2018$G <- NULL
+offense2019$year <- 2019
+conversion2019$year <- 2019
+conversion2019$Rk <- NULL
+conversion2019$G <- NULL
+offenseStats <- offense2010 %>% full_join(offense2011) %>% full_join(offense2012) %>% full_join(offense2013) %>% full_join(offense2014) %>% full_join(offense2015) %>% full_join(offense2016) %>% full_join(offense2017) %>% full_join(offense2018) %>% full_join(offense2019)
+conversionStats <- conversion2010 %>% full_join(conversion2011) %>% full_join(conversion2012) %>% full_join(conversion2013) %>% full_join(conversion2014) %>% full_join(conversion2015) %>% full_join(conversion2016) %>% full_join(conversion2017) %>% full_join(conversion2018) %>% full_join(conversion2019)
+stats <- full_join(offenseStats, conversionStats, by = c("Tm", "year"))
+years <- c(2010,2011,2012,2013,2014,2015,2016,2017,2018,2019)
+```
+
+# Offensive Tendicies in the NFL
+
+## Introduction
+
+Football is a continously evolving sprot and offensive coordinater in the NFL are alwyas coming up with new ideas to gain an edge on opponents and give there team the best shot of winning the Super Bowl. This past season the Baltimore Ravens and Lamar Jackson produced a record setting rushing attack even though the league was appearing to go towards more pass heavy schemes. My goal with this data analysis to an analyze the trends the NFL is seeing with rushing versus passing offenses as well as seeing how a teams offensive production can be used as a predictor in that team making the playoffs. To do this analysis I will be using a data set consisting of data from each teams offensive production from 2010-2019 as well as data concerning the red zone, third down and fourth down conversion rates of the teams. I also added in a boolean column that represents weather or not that team reached the playoffs for that year. The data was collected from https://www.pro-football-reference.com/.
+
+```{r}
+stats %>% head()
+```
+
+## Exploratory Data Analysis
+
+First lets start by plotting the total offensive yards of the teams each year and highlight where the playoff teams lie in relation to the rest of the league. It appears that total offense has a fairly normal distribution each year with a mean of around 5500 yards each season. Also it is worth to note that it appears that a majority of the playoff teams have above the average total yards for each season.
+
+```{r}
+stats %>% ggplot(
+  mapping = aes(group = year, x = year, y = Yds)) +
+  geom_boxplot() +
+  geom_point(data = subset(stats, Playoffs == TRUE), mapping = aes( group = year, x = year, y = Yds), color = "red") +
+  labs(title="Year vs. Total Offensive Yards",
+         x = "Year",
+         y = "Yards") +
+  scale_x_continuous(breaks = years)
+```
+
+Next lets split the offense up into passing and tushing yards and compare the trends.
+
+```{r}
+stats %>% ggplot(
+  mapping = aes(group = year, x = year, y = PassYds)) +
+  geom_boxplot() +
+  geom_point(data = subset(stats, Playoffs == TRUE), mapping = aes( group = year, x = year, y = PassYds), color = "red") +
+  labs(title="Year vs. Passing Yards",
+         x = "Year",
+         y = "Passing Yds") +
+  scale_x_continuous(breaks = years)
+```
+
+```{r}
+stats %>% ggplot(
+  mapping = aes(group = year, x = year, y = RushYds)) +
+  geom_boxplot() +
+  geom_point(data = subset(stats, Playoffs == TRUE), mapping = aes( group = year, x = year, y = RushYds), color = "red") +
+  labs(title="Year vs. Rushing Yards",
+         x = "Year",
+         y = "Rushing Yds") +
+  scale_x_continuous(breaks = years)
+```
+The plots show that there was a steady increase in passing yards from 2010 to 2016 but saw a small decrease following the 2016 season. It also appears that a good amount of playoff teams actually have below average passing yards which I did not expect. In terms of rushing yards the league seems to be fairly steady in terms of average and spread except for a few outliers including the 2019 Baltimore Ravens that excceded 3000 rushing yards. I also appears that there are less playoff teams with below average rushing yards than playoff teams with below average passing yards. This could imply that a good rushing attack can increase a teams chance of making the playoff.
+
+Another aspect of an offense is how efficient an offense is and there ability to convert third downs in order to stay on the field and increase there scoring potential. So next we will look at the third down conversion rates of playoff teams in comparision to to the rest of the league.
+```{r}
+stats$ConvRate <- stats$`X3DConv`/stats$`X3DAtt`
+stats %>% ggplot(
+  mapping = aes(group = year, x = year, y = ConvRate)) +
+  geom_boxplot() +
+  geom_point(data = subset(stats, Playoffs == TRUE), mapping = aes( group = year, x = year, y = ConvRate), color = "red") +
+  labs(title="Year vs. Third Down Conversion Rates",
+         x = "Year",
+         y = "Conversion Rate") +
+  scale_x_continuous(breaks = years)
+```
+Again it appears that playoff teams have above average conversion rates on thrid down in comparison to the rest of the league.
+
+Finally lets look at the trends for fourth down attempts as teams that are more aggressive on offense may have an increased chance of making the playoffs.
+```{r}
+stats %>% ggplot(
+  mapping = aes(group = year, x = year, y = `X4DAtt`)) +
+  geom_boxplot() +
+  geom_point(data = subset(stats, Playoffs == TRUE), mapping = aes( group = year, x = year, y = `X4DAtt`), color = "red") +
+  labs(title="Year vs. Fourth Down Conversion Attempts",
+         x = "Year",
+         y = "Attempts") +
+  scale_x_continuous(breaks = years)
+```
+There does not seem to be much correlation between fourth down attempts and playoff teams here, however it is worth noting the steady increase on the overall number of attempts across the league in the past few years. This is mostly due to a rise in analytics use by football teams and realizing it pays off to be more aggressive on fourth down that previously thought. More information about that can be found here as it is out of the scope of this report, https://www.advancedfootballanalytics.com/index.php/home/research/game-strategy/120-4th-down-study.
+
+## Linear Regression
+
+Based on our exploratory data analysis it seems that there is a higher probability of a team with above average total yards and third down conversion rate making the playoffs. So lets plot a teams total yards vs. thier thrid down conversion rate and highlight the playoff teams to see their relationship.
+
+```{r}
+stats %>% ggplot(
+  mapping = aes(x = Yds, y = ConvRate)) +
+  geom_point() +
+  geom_point(data = subset(stats, Playoffs == TRUE), mapping = aes(x = Yds, y = ConvRate), color = "red") +
+  geom_smooth(method = lm) +
+  labs(title="Total Yards vs. Third Down Conversion Rates",
+         x = "Total Yards",
+         y = "Conversion Rate")
+```
+Thier is a positive relation ship between a teams total yards and third down conversion rates. This makes sense if a team has a higher rate of conversion they are on the field more often and then having more opportunity to generate more yardage. It also it mushc clearer now that the playoff teams are above the non-playoff teams in terms of both total yards and conversion rate. We can now fit a linear regression to predict the relationship between total yards and conversion rate.
+
+```{r}
+linear_fit <- lm(ConvRate~Yds, data = stats)
+linear_fit %>% tidy()
+```
+The model projects that for every extra yard a team produces there conversion rate goes up by .00006, or for every 1000 yards a teams conversion rate increases by .06. Since the p-value is low we can accept this assumption. We will then use this model to predict whether or not a team makes the playoffs.
+
+## Prediction Method
+
+Due to the seeminly higher probability of making the playoffs with higher total yard and conversion rate, lets make a decision tree to determine the odds a team has in making the playoffs based on third down conversion rate and total yards. We will use the years 2010-2018 to create the model and then test it on the teams from 2019.
+
+```{r}
+tree <- tree(Playoffs~ConvRate+Yds, data = subset(stats, year < 2019))
+plot(tree)
+text(tree,cex = .65, pretty = 0)
+```
+
+Based on the tree a team will have the highest probability of making the playoffs by having a offense with more than 5920 total yards and a conversion rate between .4077 and .4241, and team with less than 5424.5 total yards have the smallest chance of making the playoffs. Now using this tree we can calculate the 12 teams with the highest probability of making the playoffs from 2019 and compare them to the teams that actualy did make the playoffs.
+
+```{r}
+prediction <- predict(tree, subset(stats, year == 2019))
+ordered_prediction <- order(prediction, decreasing = T)[1:12]
+mapped_prediction <- vector( , 32)
+for(value in ordered_prediction) {
+  mapped_prediction[value] <- TRUE
+}
+playoff_accuracy <- mapped_prediction & subset(stats, year == 2019)$Playoffs
+playoff_accuracy <- table(playoff_accuracy)
+playoff_accuracy[names(playoff_accuracy) == TRUE]
+```
+The tree surpisingly predicted 9 of the 12 playoff teams from 2019. Thus accurately determining if a team make the playoffs or not 26/32 times. The sample and testing data is fairly small so there is no guarentee the model will always be as accurate but it is interesting to note how accurate it was for 2019.
+
+## Conclusion
+
+Based on our findings it seems that third down conversion rates and total yardage a strong predictor in a team chance of making the playoffs. Team that have higher numbers in these categories tend to have a higher change of making the playoff but there is a sweet spot in the middle that results in a higher percentage and just having the highest in both categories is not always the right place to be. However, offense is only half of the game and thus can only determine half of a teams success. Defense and special teams are critical parts of the game that seperate the top teams from the rest. It is interesting to see the impact that a good offense has when excluding the other aspects of the game however. Also I did not see how the teams that make the playoffs actually faired in them and how offenseive production could lead to the Super Bowl.
